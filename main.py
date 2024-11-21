@@ -29,10 +29,6 @@ inputs = args.files[:-1]
 
 start = timer()
 
-main_rdd = None
-
-tweets_file = inputs[0]
-
 
 def tweet_has_hashtags(tweet): # -> bool:
 	return "entities" in tweet and "hashtags" in tweet["entities"] and len(tweet["entities"]["hashtags"]) >= 2
@@ -43,25 +39,30 @@ def get_hashtags(tweet): # -> list[str]:
 
 
 def get_hashtags_couples(tweet): # -> list[tuple(str, str)]:
-	return combinations(sorted(get_hashtags(tweet)), 2)
+	return combinations(sorted(set(get_hashtags(tweet))), 2)  # Set to eliminate repetitions
 
 
 def swap(x):
 	return (x[1], x[0])
 
 
-def get_hashtags_couples_count(in_file):
-	tweets = sc.textFile(in_file)
+def get_hashtags_couples_count(tweets):
 	tweet_dict = tweets.map(json.loads).filter(tweet_has_hashtags)
 	hashtags = tweet_dict.flatMap(get_hashtags_couples)
 	hashtags_count = hashtags.map(lambda it: (it, 1)).reduceByKey(operator.add).map(swap)
 	return hashtags_count
 
 
-for in_file in inputs:
-	counts = get_hashtags_couples_count(in_file)
-	print(counts.top(10))
-	print(counts.count())
+main_rdd = sc.textFile(inputs[0])
+
+for in_file in inputs[1:]:
+	tweets_rdd = sc.textFile(in_file)
+	main_rdd = main_rdd.union(tweets_rdd)
+
+counts = get_hashtags_couples_count(main_rdd)
+
+counts = counts.sortByKey(ascending=False) 
+counts.saveAsTextFile(output)
 
 end = timer()
 
