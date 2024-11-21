@@ -5,30 +5,6 @@ import json
 from itertools import combinations
 import operator
 
-prog_name = "Tweets Analysis"
-conf = SparkConf().setAppName(prog_name)
-sc = SparkContext(conf=conf)
-
-# sc.setLogLevel("ERROR")
-
-parser = ArgumentParser(
-	prog=prog_name,
-	description='Tweets tags analyser'
-)
-
-parser.add_argument("files", nargs="+")
-
-args = parser.parse_args()
-
-if len(args.files) < 2:
-	parser.error("Need at least 1 tweet input file and 1 output file")
-	exit(1)
-
-output = args.files[-1]
-inputs = args.files[:-1]
-
-start = timer()
-
 
 def tweet_has_hashtags(tweet): # -> bool:
 	return "entities" in tweet and "hashtags" in tweet["entities"] and len(tweet["entities"]["hashtags"]) >= 2
@@ -53,20 +29,51 @@ def get_hashtags_couples_count(tweets):
 	return hashtags_count
 
 
-main_rdd = sc.textFile(inputs[0])
+def build_main_rdd(inputs):
+	main_rdd = sc.textFile(inputs[0])
 
-for in_file in inputs[1:]:
-	tweets_rdd = sc.textFile(in_file)
-	main_rdd = main_rdd.union(tweets_rdd)
+	for in_file in inputs[1:]:
+		tweets_rdd = sc.textFile(in_file)
+		main_rdd = main_rdd.union(tweets_rdd)
 
-counts = get_hashtags_couples_count(main_rdd)
-
-counts = counts.sortByKey(ascending=False) 
-counts.saveAsTextFile(output)
-
-end = timer()
+	return main_rdd
 
 
-print(f"Total time {end - start:.3f}s")
+if "__main__" ==__name__ :
+
+	prog_name = "Tweets Analysis"
+	conf = SparkConf().setAppName(prog_name)
+	sc = SparkContext(conf=conf)
+
+	# sc.setLogLevel("ERROR")
+
+	parser = ArgumentParser(
+		prog=prog_name,
+		description='Tweets tags analyser'
+	)
+
+	parser.add_argument("files", nargs="+")
+
+	args = parser.parse_args()
+
+	if len(args.files) < 2:
+		parser.error("Need at least 1 tweet input file and 1 output file")
+		exit(1)
+
+	output = args.files[-1]
+	inputs = args.files[:-1]
+
+	start = timer()
+
+	rdd = build_main_rdd(inputs)
+	counts = get_hashtags_couples_count(rdd)
+
+	counts = counts.sortByKey(ascending=False) 
+	counts.saveAsTextFile(output)
+
+	end = timer()
+
+
+	print(f"Total time {end - start:.3f}s")
 
 
