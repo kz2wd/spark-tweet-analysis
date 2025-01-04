@@ -30,6 +30,8 @@ def get_hashtags_couples_count(tweets):
 
 
 def build_main_rdd(inputs):
+	# We group all input files together as 
+
 	main_rdd = sc.textFile(inputs[0])
 
 	for in_file in inputs[1:]:
@@ -45,7 +47,7 @@ if "__main__" ==__name__ :
 	conf = SparkConf().setAppName(prog_name)
 	sc = SparkContext(conf=conf)
 
-	# sc.setLogLevel("ERROR")
+	sc.setLogLevel("ERROR")
 
 	parser = ArgumentParser(
 		prog=prog_name,
@@ -66,6 +68,7 @@ if "__main__" ==__name__ :
 	start = timer()
 
 	rdd = build_main_rdd(inputs)
+
 	counts = get_hashtags_couples_count(rdd)
 
 	counts = counts.sortByKey(ascending=False) 
@@ -73,7 +76,8 @@ if "__main__" ==__name__ :
 
 	end = timer()
 
-
-	print(f"Total time {end - start:.3f}s")
+	# For a nicer display
+	# print(f"Total time {end - start:.3f}s")
+	print(end - start)
 
 
